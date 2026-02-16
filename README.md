@@ -199,34 +199,64 @@ Create `~/.config/opencode/supermemory.jsonc`:
 {
   // API key (can also use SUPERMEMORY_API_KEY env var)
   "apiKey": "sm_...",
-  
+
   // Min similarity for memory retrieval (0-1)
   "similarityThreshold": 0.6,
-  
+
   // Max memories injected per request
   "maxMemories": 5,
-  
+
   // Max project memories listed
   "maxProjectMemories": 10,
-  
+
   // Max profile facts injected
   "maxProfileItems": 5,
-  
+
   // Include user profile in context
   "injectProfile": true,
-  
-  // Prefix for container tags
+
+  // Prefix for container tags (used when userContainerTag/projectContainerTag not set)
   "containerTagPrefix": "opencode",
-  
+
+  // Optional: Set exact user container tag (overrides auto-generated tag)
+  "userContainerTag": "my-custom-user-tag",
+
+  // Optional: Set exact project container tag (overrides auto-generated tag)
+  "projectContainerTag": "my-project-tag",
+
   // Extra keyword patterns for memory detection (regex)
   "keywordPatterns": ["log\\s+this", "write\\s+down"],
-  
+
   // Context usage ratio that triggers compaction (0-1)
   "compactionThreshold": 0.80
 }
 ```
 
 All fields optional. Env var `SUPERMEMORY_API_KEY` takes precedence over config file.
+
+### Container Tag Selection
+
+By default, container tags are auto-generated using `containerTagPrefix` plus a hash:
+- User tag: `{prefix}_user_{hash(git_email)}`
+- Project tag: `{prefix}_project_{hash(directory)}`
+
+You can override this by specifying exact container tags:
+
+```jsonc
+{
+  // Use a specific container tag for user memories
+  "userContainerTag": "my-team-workspace",
+
+  // Use a specific container tag for project memories
+  "projectContainerTag": "my-awesome-project"
+}
+```
+
+This is useful when you want to:
+- Share memories across team members (same `userContainerTag`)
+- Sync memories between different machines for the same project
+- Organize memories using your own naming scheme
+- Integrate with existing Supermemory container tags from other tools
 
 ## Usage with Oh My OpenCode
 

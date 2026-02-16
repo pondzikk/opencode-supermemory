@@ -18,6 +18,8 @@ interface SupermemoryConfig {
   maxProfileItems?: number;
   injectProfile?: boolean;
   containerTagPrefix?: string;
+  userContainerTag?: string;
+  projectContainerTag?: string;
   filterPrompt?: string;
   keywordPatterns?: string[];
   compactionThreshold?: number;
@@ -42,7 +44,7 @@ const DEFAULT_KEYWORD_PATTERNS = [
   "always\\s+remember",
 ];
 
-const DEFAULTS: Required<Omit<SupermemoryConfig, "apiKey">> = {
+const DEFAULTS: Required<Omit<SupermemoryConfig, "apiKey" | "userContainerTag" | "projectContainerTag">> = {
   similarityThreshold: 0.6,
   maxMemories: 5,
   maxProjectMemories: 10,
@@ -104,6 +106,8 @@ export const CONFIG = {
   maxProfileItems: fileConfig.maxProfileItems ?? DEFAULTS.maxProfileItems,
   injectProfile: fileConfig.injectProfile ?? DEFAULTS.injectProfile,
   containerTagPrefix: fileConfig.containerTagPrefix ?? DEFAULTS.containerTagPrefix,
+  userContainerTag: fileConfig.userContainerTag,
+  projectContainerTag: fileConfig.projectContainerTag,
   filterPrompt: fileConfig.filterPrompt ?? DEFAULTS.filterPrompt,
   keywordPatterns: [
     ...DEFAULT_KEYWORD_PATTERNS,

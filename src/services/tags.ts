@@ -16,6 +16,12 @@ export function getGitEmail(): string | null {
 }
 
 export function getUserTag(): string {
+  // If userContainerTag is explicitly set, use it
+  if (CONFIG.userContainerTag) {
+    return CONFIG.userContainerTag;
+  }
+
+  // Otherwise, auto-generate based on containerTagPrefix
   const email = getGitEmail();
   if (email) {
     return `${CONFIG.containerTagPrefix}_user_${sha256(email)}`;
@@ -25,6 +31,12 @@ export function getUserTag(): string {
 }
 
 export function getProjectTag(directory: string): string {
+  // If projectContainerTag is explicitly set, use it
+  if (CONFIG.projectContainerTag) {
+    return CONFIG.projectContainerTag;
+  }
+
+  // Otherwise, auto-generate based on containerTagPrefix
   return `${CONFIG.containerTagPrefix}_project_${sha256(directory)}`;
 }
 
