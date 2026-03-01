@@ -11,6 +11,16 @@ interface MemoriesResponseMinimal {
   results?: MemoryResultMinimal[];
 }
 
+function extractFactText(fact: unknown): string {
+  if (typeof fact === "string") return fact;
+  if (fact != null && typeof fact === "object") {
+    const content = (fact as { content?: string }).content;
+    if (typeof content === "string") return content;
+    return JSON.stringify(fact);
+  }
+  return String(fact ?? "");
+}
+
 export function formatContextForPrompt(
   profile: ProfileResponse | null,
   userMemories: MemoriesResponseMinimal,
@@ -24,7 +34,7 @@ export function formatContextForPrompt(
     if (staticFacts.length > 0) {
       parts.push("\nUser Profile:");
       staticFacts.slice(0, CONFIG.maxProfileItems).forEach((fact) => {
-        const text = typeof fact === "string" ? fact : (fact as { content?: string }).content ?? String(fact);
+        const text = extractFactText(fact);
         parts.push(`- ${text}`);
       });
     }
@@ -32,7 +42,7 @@ export function formatContextForPrompt(
     if (dynamicFacts.length > 0) {
       parts.push("\nRecent Context:");
       dynamicFacts.slice(0, CONFIG.maxProfileItems).forEach((fact) => {
-        const text = typeof fact === "string" ? fact : (fact as { content?: string }).content ?? String(fact);
+        const text = extractFactText(fact);
         parts.push(`- ${text}`);
       });
     }
