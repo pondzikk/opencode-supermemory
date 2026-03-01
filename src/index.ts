@@ -372,7 +372,7 @@ export const SupermemoryPlugin: Plugin = async (ctx: PluginInput) => {
                     ...r,
                     scope: "project" as const,
                   })),
-                ].sort((a, b) => b.similarity - a.similarity);
+                ].sort((a, b) => (b.similarity ?? 0) - (a.similarity ?? 0));
 
                 return JSON.stringify({
                   success: true,
@@ -381,7 +381,7 @@ export const SupermemoryPlugin: Plugin = async (ctx: PluginInput) => {
                   results: combined.slice(0, args.limit || 10).map((r) => ({
                     id: r.id,
                     content: r.memory || r.chunk,
-                    similarity: Math.round(r.similarity * 100),
+                    similarity: Math.round((r.similarity ?? 0) * 100),
                     scope: r.scope,
                   })),
                 });
@@ -495,7 +495,7 @@ export const SupermemoryPlugin: Plugin = async (ctx: PluginInput) => {
 function formatSearchResults(
   query: string,
   scope: string | undefined,
-  results: { results?: Array<{ id: string; memory?: string; chunk?: string; similarity: number }> },
+  results: { results?: Array<{ id: string; memory?: string; chunk?: string; similarity?: number }> },
   limit?: number
 ): string {
   const memoryResults = results.results || [];
@@ -507,7 +507,7 @@ function formatSearchResults(
     results: memoryResults.slice(0, limit || 10).map((r) => ({
       id: r.id,
       content: r.memory || r.chunk,
-      similarity: Math.round(r.similarity * 100),
+      similarity: Math.round((r.similarity ?? 0) * 100),
     })),
   });
 }

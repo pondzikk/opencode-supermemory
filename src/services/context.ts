@@ -2,7 +2,7 @@ import type { ProfileResponse } from "supermemory/resources";
 import { CONFIG } from "../config.js";
 
 interface MemoryResultMinimal {
-  similarity: number;
+  similarity?: number;
   memory?: string;
   chunk?: string;
 }
@@ -24,14 +24,16 @@ export function formatContextForPrompt(
     if (staticFacts.length > 0) {
       parts.push("\nUser Profile:");
       staticFacts.slice(0, CONFIG.maxProfileItems).forEach((fact) => {
-        parts.push(`- ${fact}`);
+        const text = typeof fact === "string" ? fact : (fact as { content?: string }).content ?? String(fact);
+        parts.push(`- ${text}`);
       });
     }
 
     if (dynamicFacts.length > 0) {
       parts.push("\nRecent Context:");
       dynamicFacts.slice(0, CONFIG.maxProfileItems).forEach((fact) => {
-        parts.push(`- ${fact}`);
+        const text = typeof fact === "string" ? fact : (fact as { content?: string }).content ?? String(fact);
+        parts.push(`- ${text}`);
       });
     }
   }
@@ -40,7 +42,7 @@ export function formatContextForPrompt(
   if (projectResults.length > 0) {
     parts.push("\nProject Knowledge:");
     projectResults.forEach((mem) => {
-      const similarity = Math.round(mem.similarity * 100);
+      const similarity = Math.round((mem.similarity ?? 0) * 100);
       const content = mem.memory || mem.chunk || "";
       parts.push(`- [${similarity}%] ${content}`);
     });
@@ -50,7 +52,7 @@ export function formatContextForPrompt(
   if (userResults.length > 0) {
     parts.push("\nRelevant Memories:");
     userResults.forEach((mem) => {
-      const similarity = Math.round(mem.similarity * 100);
+      const similarity = Math.round((mem.similarity ?? 0) * 100);
       const content = mem.memory || mem.chunk || "";
       parts.push(`- [${similarity}%] ${content}`);
     });
