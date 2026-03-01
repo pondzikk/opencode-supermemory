@@ -140,7 +140,7 @@ export const SupermemoryPlugin: Plugin = async (ctx: PluginInput) => {
           const projectMemories = {
             results: (projectMemoriesList.memories || []).map((m: any) => ({
               id: m.id,
-              memory: m.summary,
+              memory: m.summary || m.content || m.title || "",
               similarity: 1,
               title: m.title,
               metadata: m.metadata,

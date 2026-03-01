@@ -151,6 +151,7 @@ export class SupermemoryClient {
           limit,
           order: "desc",
           sort: "createdAt",
+          includeContent: true,
         }),
         TIMEOUT_MS
       );
