@@ -315,7 +315,8 @@ export const SupermemoryPlugin: Plugin = async (ctx: PluginInput) => {
                 const result = await supermemoryClient.addMemory(
                   sanitizedContent,
                   containerTag,
-                  { type: args.type }
+                  { type: args.type },
+                  scope === "user" ? CONFIG.userEntityContext : CONFIG.projectEntityContext
                 );
 
                 if (!result.success) {

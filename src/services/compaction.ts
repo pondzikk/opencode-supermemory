@@ -301,7 +301,8 @@ export function createCompactionHook(
       const result = await supermemoryClient.addMemory(
         `[Session Summary]\n${summaryContent}`,
         tags.project,
-        { type: "conversation" }
+        { type: "conversation" },
+        CONFIG.projectEntityContext
       );
 
       if (result.success) {
