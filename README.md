@@ -245,6 +245,15 @@ Create `~/.config/opencode/supermemory.jsonc`:
 
   // Context usage ratio that triggers compaction (0-1)
   "compactionThreshold": 0.8,
+
+  // Enable semantic reranking of search results (improves relevance)
+  "enableRerank": true,
+
+  // Entity context for user memory extraction (describes the user's role/domain)
+  "userEntityContext": "This is a software developer's personal context. Extract preferences, coding style, tool choices, workflow patterns, and technical decisions.",
+
+  // Entity context for project memory extraction (describes the project domain)
+  "projectEntityContext": "This is a software project's codebase context. Extract architecture decisions, file structure patterns, dependency choices, conventions, and known issues."
 }
 ```
 
@@ -275,6 +284,17 @@ This is useful when you want to:
 - Sync memories between different machines for the same project
 - Organize memories using your own naming scheme
 - Integrate with existing Supermemory container tags from other tools
+
+## Improvements Over Upstream
+
+1. **Semantic Reranking** (`enableRerank: true`) — Search results are reranked for better relevance using Supermemory's native rerank API
+2. **Stable Memory IDs** (`customId`) — Memories get SHA-256-based custom IDs preventing duplicate entries on re-ingestion
+3. **Entity Context** (`userEntityContext`, `projectEntityContext`) — Memories are stored with entity context descriptions that improve extraction quality
+4. **Native Conversation Ingestion** — Multi-turn conversations use Supermemory's `/v4/conversations` endpoint (with fallback to structured text)
+5. **Soft-Delete** — Memory deletion uses `memories.forget()` (recoverable) instead of hard delete
+6. **Profile Search Dedup** — On context injection, if the profile API returns embedded search results, the separate `searchMemories()` call is skipped (saves 1 API call per message)
+
+*Note: The `prt_` prefix fix is preserved from the original fork.*
 
 ## Usage with Oh My OpenCode
 

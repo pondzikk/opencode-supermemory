@@ -23,6 +23,9 @@ interface SupermemoryConfig {
   filterPrompt?: string;
   keywordPatterns?: string[];
   compactionThreshold?: number;
+  enableRerank?: boolean;
+  userEntityContext?: string;
+  projectEntityContext?: string;
 }
 
 const DEFAULT_KEYWORD_PATTERNS = [
@@ -54,6 +57,9 @@ const DEFAULTS: Required<Omit<SupermemoryConfig, "apiKey" | "userContainerTag" |
   filterPrompt: "You are a stateful coding agent. Remember all the information, including but not limited to user's coding preferences, tech stack, behaviours, workflows, and any other relevant details.",
   keywordPatterns: [],
   compactionThreshold: 0.80,
+  enableRerank: true,
+  userEntityContext: "This is a software developer's personal context. Extract preferences, coding style, tool choices, workflow patterns, and technical decisions.",
+  projectEntityContext: "This is a software project's codebase context. Extract architecture decisions, file structure patterns, dependency choices, conventions, and known issues.",
 };
 
 function isValidRegex(pattern: string): boolean {
@@ -114,6 +120,9 @@ export const CONFIG = {
     ...(fileConfig.keywordPatterns ?? []).filter(isValidRegex),
   ],
   compactionThreshold: validateCompactionThreshold(fileConfig.compactionThreshold),
+  enableRerank: fileConfig.enableRerank ?? DEFAULTS.enableRerank,
+  userEntityContext: fileConfig.userEntityContext ?? DEFAULTS.userEntityContext,
+  projectEntityContext: fileConfig.projectEntityContext ?? DEFAULTS.projectEntityContext,
 };
 
 export function isConfigured(): boolean {

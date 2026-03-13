@@ -133,14 +133,29 @@ export const SupermemoryPlugin: Plugin = async (ctx: PluginInput) => {
         if (isFirstMessage) {
           injectedSessions.add(input.sessionID);
 
-          const [profileResult, userMemoriesResult, projectMemoriesListResult] = await Promise.all([
+          const [profileResult, projectMemoriesListResult] = await Promise.all([
             supermemoryClient.getProfile(tags.user, userMessage),
-            supermemoryClient.searchMemories(userMessage, tags.user),
             supermemoryClient.listMemories(tags.project, CONFIG.maxProjectMemories),
           ]);
 
           const profile = profileResult.success ? profileResult : null;
-          const userMemories = userMemoriesResult.success ? userMemoriesResult : { results: [] };
+
+          // Dedup: use profile's embedded search results if available, otherwise fallback to searchMemories()
+          const profileSearchResults = profileResult.success && profileResult.searchResults?.results?.length
+            ? { results: (profileResult.searchResults.results as any[]).map((r: any) => ({
+                memory: r.memory || r.chunk || r.content || '',
+                chunk: r.chunk,
+                similarity: r.similarity ?? 0.8,
+              })) }
+            : null;
+
+          let userMemories: { results?: Array<{ memory?: string; chunk?: string; similarity?: number }> };
+          if (profileSearchResults) {
+            userMemories = profileSearchResults;
+          } else {
+            const userMemoriesResult = await supermemoryClient.searchMemories(userMessage, tags.user);
+            userMemories = userMemoriesResult.success ? userMemoriesResult : { results: [] };
+          }
           const projectMemoriesList = projectMemoriesListResult.success ? projectMemoriesListResult : { memories: [] };
 
           const projectMemories = {
@@ -438,7 +453,7 @@ export const SupermemoryPlugin: Plugin = async (ctx: PluginInput) => {
                   success: true,
                   scope,
                   count: memories.length,
-                  memories: memories.map((m) => ({
+                  memories: memories.map((m: any) => ({
                     id: m.id,
                     content: m.summary,
                     createdAt: m.createdAt,
@@ -456,11 +471,13 @@ export const SupermemoryPlugin: Plugin = async (ctx: PluginInput) => {
                 }
 
                 const scope = args.scope || "project";
+                const containerTag =
+                  scope === "user" ? tags.user : tags.project;
 
                 const result = await supermemoryClient.deleteMemory(
-                  args.memoryId
+                  args.memoryId,
+                  containerTag
                 );
-
                 if (!result.success) {
                   return JSON.stringify({
                     success: false,
@@ -501,7 +518,7 @@ export const SupermemoryPlugin: Plugin = async (ctx: PluginInput) => {
 function formatSearchResults(
   query: string,
   scope: string | undefined,
-  results: { results?: Array<{ id: string; memory?: string; chunk?: string; similarity?: number }> },
+  results: { results?: Array<{ id?: string; memory?: string; chunk?: string; similarity?: number }> },
   limit?: number
 ): string {
   const memoryResults = results.results || [];
@@ -511,7 +528,7 @@ function formatSearchResults(
     scope,
     count: memoryResults.length,
     results: memoryResults.slice(0, limit || 10).map((r) => ({
-      id: r.id,
+      id: r.id || 'unknown',
       content: r.memory || r.chunk,
       similarity: Math.round((r.similarity ?? 0) * 100),
     })),

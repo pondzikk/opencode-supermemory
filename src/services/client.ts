@@ -64,14 +64,16 @@ export class SupermemoryClient {
   async searchMemories(query: string, containerTag: string) {
     log("searchMemories: start", { containerTag });
     try {
+      const searchParams = {
+        q: query,
+        containerTag,
+        threshold: CONFIG.similarityThreshold,
+        limit: CONFIG.maxMemories,
+        searchMode: "hybrid" as const,
+        ...(CONFIG.enableRerank ? { rerank: true } : {}),
+      };
       const result = await withTimeout(
-        this.getClient().search.memories({
-          q: query,
-          containerTag,
-          threshold: CONFIG.similarityThreshold,
-          limit: CONFIG.maxMemories,
-          searchMode: "hybrid"
-        }),
+        (this.getClient().search.memories as (p: typeof searchParams) => Promise<{ results: Array<{ memory?: string; chunk?: string; similarity?: number; id?: string; metadata?: Record<string, unknown> }>; total: number; timing: number }>)(searchParams),
         TIMEOUT_MS
       );
       log("searchMemories: success", { count: result.results?.length || 0 });
@@ -105,14 +107,19 @@ export class SupermemoryClient {
   async addMemory(
     content: string,
     containerTag: string,
-    metadata?: { type?: MemoryType; tool?: string; [key: string]: unknown }
+    metadata?: { type?: MemoryType; tool?: string; [key: string]: unknown },
+    entityContext?: string
   ) {
     log("addMemory: start", { containerTag, contentLength: content.length });
     try {
+      const { createHash } = await import("node:crypto");
+      const customId = createHash("sha256").update(content).digest("hex").slice(0, 16);
       const result = await withTimeout(
-        this.getClient().memories.add({
+        this.getClient().add({
           content,
           containerTag,
+          customId,
+          ...(entityContext ? { entityContext } : {}),
           metadata: metadata as Record<string, string | number | boolean | string[]>,
         }),
         TIMEOUT_MS
@@ -126,11 +133,15 @@ export class SupermemoryClient {
     }
   }
 
-  async deleteMemory(memoryId: string) {
+  async deleteMemory(memoryId: string, containerTag: string) {
     log("deleteMemory: start", { memoryId });
     try {
       await withTimeout(
-        this.getClient().memories.delete(memoryId),
+        this.getClient().memories.forget({
+          containerTag,
+          id: memoryId,
+          reason: "User requested deletion",
+        }),
         TIMEOUT_MS
       );
       log("deleteMemory: success", { memoryId });
@@ -155,8 +166,9 @@ export class SupermemoryClient {
         }),
         TIMEOUT_MS
       );
-      log("listMemories: success", { count: result.memories?.length || 0 });
-      return { success: true as const, ...result };
+      const resultTyped = result as { memories?: unknown[]; pagination?: unknown };
+      log("listMemories: success", { count: resultTyped.memories?.length || 0 });
+      return { success: true as const, ...resultTyped };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       log("listMemories: error", { error: errorMessage });
@@ -185,8 +197,73 @@ export class SupermemoryClient {
       return { success: false as const, error: "At least one containerTag is required" };
     }
 
-    const transcript = this.formatConversationTranscript(messages);
-    const rawContent = `[Conversation ${conversationId}]\n${transcript}`;
+    // Try native v4/conversations endpoint first
+    try {
+      const nativeMessages = messages.map((m) => ({
+        role: typeof m.role === "string" ? m.role : String(m.role),
+        content:
+          typeof m.content === "string"
+            ? m.content
+            : m.content
+                .map((part) =>
+                  part.type === "text" ? part.text : `[image] ${part.imageUrl.url}`
+                )
+                .join("\n"),
+      }));
+
+      const apiKey = SUPERMEMORY_API_KEY;
+      const v4Response = await withTimeout(
+        fetch("https://api.supermemory.ai/v4/conversations", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${apiKey}`,
+          },
+          body: JSON.stringify({
+            conversationId,
+            messages: nativeMessages,
+            containerTags: uniqueTags,
+            metadata: metadata ?? {},
+          }),
+        }),
+        TIMEOUT_MS
+      );
+
+      if (v4Response.ok) {
+        const v4Data = await v4Response.json() as { id?: string; status?: string };
+        const id = v4Data.id ?? conversationId;
+        log("ingestConversation: v4 success", { conversationId, status: v4Data.status });
+        return {
+          success: true as const,
+          id,
+          conversationId,
+          status: (v4Data.status ?? "stored") as "stored" | "partial",
+          storedMemoryIds: [id],
+        };
+      }
+      // v4 endpoint not available — fall through to text-based approach
+      log("ingestConversation: v4 not available, falling back", { status: v4Response.status });
+    } catch (_v4Error) {
+      log("ingestConversation: v4 request failed, falling back");
+    }
+
+    // Fallback: structured text format via addMemory
+    const structuredContent = messages
+      .map((m, idx) => {
+        const role = typeof m.role === "string" ? m.role : String(m.role);
+        const content =
+          typeof m.content === "string"
+            ? m.content
+            : m.content
+                .map((part) =>
+                  part.type === "text" ? part.text : `[image] ${part.imageUrl.url}`
+                )
+                .join("\n");
+        return `### Message ${idx + 1}\n**Role**: ${role}\n\n${content.trim()}`;
+      })
+      .join("\n\n---\n\n");
+
+    const rawContent = `[Conversation ${conversationId}]\n\n${structuredContent}`;
     const content =
       rawContent.length > MAX_CONVERSATION_CHARS
         ? `${rawContent.slice(0, MAX_CONVERSATION_CHARS)}\n...[truncated]`

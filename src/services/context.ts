@@ -21,6 +21,19 @@ function extractFactText(fact: unknown): string {
   return String(fact ?? "");
 }
 
+export function normalizeSearchResults(results: unknown[]): MemoryResultMinimal[] {
+  return results.map((r) => {
+    const item = r as Record<string, unknown>;
+    return {
+      memory: typeof item.memory === "string" ? item.memory :
+              typeof item.chunk === "string" ? item.chunk :
+              typeof item.content === "string" ? item.content : undefined,
+      chunk: typeof item.chunk === "string" ? item.chunk : undefined,
+      similarity: typeof item.similarity === "number" ? item.similarity : 0.8,
+    };
+  });
+}
+
 export function formatContextForPrompt(
   profile: ProfileResponse | null,
   userMemories: MemoriesResponseMinimal,
