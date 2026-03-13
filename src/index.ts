@@ -1,6 +1,12 @@
 import type { Plugin, PluginInput } from "@opencode-ai/plugin";
 import type { Part } from "@opencode-ai/sdk";
 import { tool } from "@opencode-ai/plugin";
+import { randomBytes } from "node:crypto";
+
+/** Generate a Part ID compatible with OpenCode v1.2.25+ (must start with 'prt') */
+function generatePartId(label: string): string {
+  return `prt_${label}_${randomBytes(12).toString("hex")}`;
+}
 
 import { supermemoryClient } from "./services/client.js";
 import { formatContextForPrompt } from "./services/context.js";
@@ -112,7 +118,7 @@ export const SupermemoryPlugin: Plugin = async (ctx: PluginInput) => {
         if (detectMemoryKeyword(userMessage)) {
           log("chat.message: memory keyword detected");
           const nudgePart: Part = {
-            id: `supermemory-nudge-${Date.now()}`,
+            id: generatePartId("nudge"),
             sessionID: input.sessionID,
             messageID: output.message.id,
             type: "text",
@@ -157,7 +163,7 @@ export const SupermemoryPlugin: Plugin = async (ctx: PluginInput) => {
 
           if (memoryContext) {
             const contextPart: Part = {
-              id: `supermemory-context-${Date.now()}`,
+              id: generatePartId("context"),
               sessionID: input.sessionID,
               messageID: output.message.id,
               type: "text",
