@@ -1,15 +1,22 @@
-# opencode-supermemory
+# opencode-supermemory (fork)
+
+> **Fork of [supermemoryai/opencode-supermemory](https://github.com/supermemoryai/opencode-supermemory)** with a fix for the Part ID schema validation crash introduced in OpenCode v1.2.25+.
+>
+> **What was fixed:** The original plugin generates message Part IDs with `supermemory-nudge-*` and `supermemory-context-*` prefixes. OpenCode v1.2.25 ([commit 090f636](https://github.com/anomalyco/opencode/commit/090f636), PR #16966) introduced strict Zod validation requiring all Part IDs to start with `prt`. This caused a `ZodError` crash in `createUserMessage()` on every message. This fork generates compliant `prt_`-prefixed IDs.
+>
+> Upstream issue: [supermemoryai/opencode-supermemory#28](https://github.com/supermemoryai/opencode-supermemory/issues/28)
+
+---
 
 OpenCode plugin for persistent memory using [Supermemory](https://supermemory.ai).
 
 Your agent remembers what you tell it - across sessions, across projects.
-
 ## Installation
 
 ### For Humans
 
 ```bash
-bunx opencode-supermemory@latest install
+bunx github:pondzikk/opencode-supermemory install
 ```
 
 Then get your API key from [app.supermemory.ai](https://app.supermemory.ai/?view=integrations) and set it:
@@ -21,8 +28,8 @@ export SUPERMEMORY_API_KEY="sm_..."
 **Or let your agent do it** - paste this into OpenCode:
 
 ```
-Install opencode-supermemory by following https://raw.githubusercontent.com/supermemoryai/opencode-supermemory/main/README.md
 ```
+Install opencode-supermemory by following https://raw.githubusercontent.com/pondzikk/opencode-supermemory/main/README.md
 
 ### For LLM Agents
 
@@ -34,7 +41,7 @@ If you're an LLM agent helping set up opencode-supermemory, follow these steps:
 #### Step 1: Run the installer
 
 ```bash
-bunx opencode-supermemory@latest install --no-tui
+bunx github:pondzikk/opencode-supermemory install --no-tui
 ```
 
 This will:
@@ -52,7 +59,7 @@ Should contain:
 
 ```json
 {
-  "plugin": ["opencode-supermemory"]
+  "plugin": ["github:pondzikk/opencode-supermemory"]
 }
 ```
 
@@ -63,7 +70,7 @@ If not, add it manually:
 ```jsonc
 {
   "plugin": [
-    "opencode-supermemory",
+    "github:pondzikk/opencode-supermemory",
     // ... other plugins
   ],
 }
@@ -73,7 +80,7 @@ If not, add it manually:
 
 ```json
 {
-  "plugin": ["opencode-supermemory"]
+  "plugin": ["github:pondzikk/opencode-supermemory"]
 }
 ```
 
